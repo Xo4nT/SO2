@@ -1,0 +1,51 @@
+2a
+La variable 'local' del padre tendrá 666 si aún el hijo no ha entrado en la cpu o 42 dependiendo de si el hijo ha ejecutado su código antes que el padre haya llamado la función
+
+2b
+start >> 12
+
+2c
+struct task_struct * proc = find_task_by_pid(p);
+for (int i = 0; i < (size >> 12); ++i)
+	set_ss_pag(get_PT(current()), NUM_PAG_KERNEL + NUM_PAG_CODE + NUM_PAG_DATA + i, get_frame(get_PT(proc), start >> 12));
+
+2d
+copy_data(NUM_PAG_KERNEL + NUM_PAG_CODE + NUM_PAG_DATA, dest >> 12, size)
+
+2e
+for (int i = 0; i < (size >> 12); ++i)
+	del_ss_pag(get_PT(current(), NUM_PAG_KERNEL + NUM_PAG_CODE + NUM_PAG_DATA + i);
+setCr3(get_dir(current()));
+
+3b
+No hay que hacer ningún cambio en el handler pero sí hay que modificar la entrada correspondiente del sys_timeout en la sys_call_table
+
+3c
+Habría que añadir un campo en el task_struct para guardar el timeout que tenga pendiente el proceso y una marca para saber si el proceso está marcado o no
+
+3f
+Para saber si un proceso está marcado, desde la rutina de reloj, después de volver del scheduler, comprobamos el campo del PCB, marcat, para saber si hay que hacer los cambios para ejecutar la nueva función func o no.
+
+if (current()->marcat) canvi_eip(current()->funcs_pendents.func);
+
+on la funció void canvi_eip(void * f) està implementada en assembler:
+ENTRY(canvi_eip)
+	pushl &ebp
+	movl %esp, %ebp
+	
+	//Canvi de l'esp per a que empili la direcció de retorn on s'sestava executant en mode usuari
+	movl 64(%ebp), %edx //64(%ebp) és la posició de eip 
+	movl 76(%ebp), %ecx //76(%ebp) és la posició de esp
+	addl $-4, %ecx
+	movl %edx, (%ecx)
+	movl %ecx, 76(%ebp)
+	
+	//Canvi de l'eip per a executar la funció nova
+	movl 8(%ebp), %ecx
+	movl %ecx, 64(%ebp)
+	
+	popl %ebp
+	ret
+	
+3g
+Com no volem que els fill heretin els timeouts, caldrà modificar el sys_fork per a establir manualment el timeout del fill després de fer la còpia del PCB.
